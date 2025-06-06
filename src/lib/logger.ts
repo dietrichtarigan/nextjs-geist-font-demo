@@ -5,6 +5,7 @@ interface ErrorContext {
   path?: string
   action?: string
   metadata?: Record<string, any>
+  timestamp?: string
 }
 
 interface LogOptions {
@@ -22,6 +23,7 @@ class Logger {
   private batchTimeout: number = 5000 // 5 seconds
 
   private constructor() {
+    // Note: To fix 'process' not found error, install @types/node as a dev dependency
     this.isDevelopment = process.env.NODE_ENV === "development"
     this.setupErrorListeners()
     this.startErrorProcessor()
@@ -154,9 +156,9 @@ class Logger {
     const timestamp = new Date().toISOString()
 
     if (this.isDevelopment) {
-      const logFn = console[level]
+      const logFn = level && console[level] ? console[level] : console.log
       logFn(
-        `[${timestamp}] ${level.toUpperCase()}: ${message}`,
+        `[${timestamp}] ${level ? level.toUpperCase() : "LOG"}: ${message}`,
         ...(context ? ["\nContext:", context] : []),
         ...(tags ? ["\nTags:", tags] : [])
       )
@@ -209,8 +211,8 @@ class Logger {
 
   // Memory monitoring
   logMemoryUsage() {
-    if (typeof performance !== "undefined" && performance.memory) {
-      const memory = performance.memory
+    if (typeof performance !== "undefined" && (performance as any).memory) {
+      const memory = (performance as any).memory
       this.info("Memory Usage", {
         context: {
           usedJSHeapSize: memory.usedJSHeapSize,
